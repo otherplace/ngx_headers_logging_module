@@ -1,0 +1,81 @@
+Only in ./: Makefile
+Only in ./: objs
+Only in ./src/http: .ngx_http_core_module.c.swp
+Only in ./src/http: .ngx_http_core_module.h.swp
+Only in ./src/http: .ngx_http_header_filter_module.c.swp
+diff -ur ./src/http/ngx_http_core_module.c ./src/http/ngx_http_core_module.c
+--- ./src/http/ngx_http_core_module.c	2014-09-16 21:23:20.000000000 +0900
++++ ./src/http/ngx_http_core_module.c	2014-11-15 19:21:55.000000000 +0900
+@@ -788,8 +788,20 @@
+       NULL },
+ 
+ #endif
++	{ ngx_string("request_headers_logging"),
++		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
++			|NGX_HTTP_SIF_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
++		ngx_conf_set_flag_slot, NGX_HTTP_LOC_CONF_OFFSET,
++		offsetof(ngx_http_core_loc_conf_t, request_header_logging),
++		NULL },
++	{ ngx_string("response_headers_logging"),
++		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF
++			|NGX_HTTP_SIF_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
++		ngx_conf_set_flag_slot, NGX_HTTP_LOC_CONF_OFFSET,
++		offsetof(ngx_http_core_loc_conf_t, response_header_logging),
++		NULL },
+ 
+-      ngx_null_command
++	ngx_null_command
+ };
+ 
+ 
+@@ -3660,6 +3672,9 @@
+     clcf->disable_symlinks_from = NGX_CONF_UNSET_PTR;
+ #endif
+ 
++	clcf->request_header_logging = NGX_CONF_UNSET;
++	clcf->response_header_logging = NGX_CONF_UNSET;
++
+     return clcf;
+ }
+ 
+@@ -3945,6 +3960,11 @@
+                              prev->disable_symlinks_from, NULL);
+ #endif
+ 
++	ngx_conf_merge_value(conf->request_header_logging, prev->request_header_logging,
++							NGX_CONF_UNSET);
++	ngx_conf_merge_value(conf->response_header_logging, prev->response_header_logging,
++							NGX_CONF_UNSET);
++
+     return NGX_CONF_OK;
+ }
+ 
+diff -ur ./src/http/ngx_http_core_module.h ./src/http/ngx_http_core_module.h
+--- ./src/http/ngx_http_core_module.h	2014-09-16 21:23:20.000000000 +0900
++++ ./src/http/ngx_http_core_module.h	2014-11-15 18:11:46.000000000 +0900
+@@ -446,7 +446,8 @@
+     ngx_uint_t    types_hash_bucket_size;
+ 
+     ngx_queue_t  *locations;
+-
++    ngx_flag_t    request_header_logging;
++    ngx_flag_t    response_header_logging;
+ #if 0
+     ngx_http_core_loc_conf_t  *prev_location;
+ #endif
+diff -ur ./src/http/ngx_http_header_filter_module.c ./src/http/ngx_http_header_filter_module.c
+--- ./src/http/ngx_http_header_filter_module.c	2014-09-16 21:23:20.000000000 +0900
++++ ./src/http/ngx_http_header_filter_module.c	2014-11-15 18:20:16.000000000 +0900
+@@ -607,7 +607,11 @@
+ 
+     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                    "%*s", (size_t) (b->last - b->pos), b->pos);
+-
++	if( clcf->response_header_logging > 0 )
++	{
++			ngx_log_error(NGX_LOG_INFO, c->log, 0,
++							"%*s", (size_t) (b->last - b->pos), b->pos);
++	}
+     /* the end of HTTP header */
+     *b->last++ = CR; *b->last++ = LF;
+ 
