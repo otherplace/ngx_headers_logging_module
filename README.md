@@ -24,7 +24,7 @@ HTTP response headers logging to ngx's error log as `INFO` log level.
 How to compile
 ==============
 
-	$ cd nginx-1.x.x/
+	$ cd nginx-1.6.x/
 	$ patch -p0 < <path of this module>/nginx-1.6.x.patch
 	$ ./configure --add-module=<path of this module> 
 
